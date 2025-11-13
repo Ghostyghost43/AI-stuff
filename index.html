@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Security Prompt Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 AI Security Prompt Generator</h1>
+            <p class="subtitle">Generate effective prompts for ethical security testing & research</p>
+            <div class="disclaimer">
+                ⚠️ For authorized security testing, CTF competitions, and educational purposes only
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <section class="category-section">
+                    <h2>Prompt Categories</h2>
+                    <div class="category-grid">
+                        <button class="category-btn" data-category="web">Web Security</button>
+                        <button class="category-btn" data-category="network">Network Pentesting</button>
+                        <button class="category-btn" data-category="code">Code Analysis</button>
+                        <button class="category-btn" data-category="osint">OSINT</button>
+                        <button class="category-btn" data-category="crypto">Cryptography</button>
+                        <button class="category-btn" data-category="social">Social Engineering</button>
+                        <button class="category-btn" data-category="mobile">Mobile Security</button>
+                        <button class="category-btn" data-category="cloud">Cloud Security</button>
+                        <button class="category-btn" data-category="api">API Testing</button>
+                        <button class="category-btn" data-category="ctf">CTF Challenges</button>
+                    </div>
+                </section>
+
+                <section class="bypass-section">
+                    <h2>🔓 AI Bypass Techniques</h2>
+                    <div class="bypass-grid">
+                        <button class="bypass-btn" data-bypass="jailbreak">Jailbreak Prompts</button>
+                        <button class="bypass-btn" data-bypass="obfuscation">Obfuscation</button>
+                        <button class="bypass-btn" data-bypass="context">Context Manipulation</button>
+                        <button class="bypass-btn" data-bypass="technical">Technical Framing</button>
+                        <button class="bypass-btn" data-bypass="metadata">Metadata Hiding</button>
+                        <button class="bypass-btn" data-bypass="encoder">Text Encoder</button>
+                    </div>
+                </section>
+
+                <section class="techniques-section">
+                    <h2>Prompt Engineering Techniques</h2>
+                    <div class="techniques-list">
+                        <div class="technique-item" data-technique="role">
+                            <h3>Role-Based Prompting</h3>
+                            <p>Assign AI a specific role (e.g., "You are a security researcher")</p>
+                        </div>
+                        <div class="technique-item" data-technique="stepbystep">
+                            <h3>Step-by-Step Instructions</h3>
+                            <p>Break down complex tasks into sequential steps</p>
+                        </div>
+                        <div class="technique-item" data-technique="context">
+                            <h3>Context-Rich Prompts</h3>
+                            <p>Provide detailed background and constraints</p>
+                        </div>
+                        <div class="technique-item" data-technique="examples">
+                            <h3>Few-Shot Learning</h3>
+                            <p>Include examples of expected output format</p>
+                        </div>
+                        <div class="technique-item" data-technique="constraints">
+                            <h3>Constraint Setting</h3>
+                            <p>Define boundaries and limitations clearly</p>
+                        </div>
+                        <div class="technique-item" data-technique="chain">
+                            <h3>Chain of Thought</h3>
+                            <p>Ask AI to explain its reasoning process</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="right-panel">
+                <section class="generator-section">
+                    <h2>Generated Prompt</h2>
+                    <div class="controls">
+                        <button id="generateBtn" class="generate-btn">Generate Random Prompt</button>
+                        <button id="copyBtn" class="copy-btn">Copy to Clipboard</button>
+                    </div>
+                    <div class="prompt-display" id="promptDisplay">
+                        <p class="placeholder">Select a category or technique to generate a prompt, or click "Generate Random Prompt"</p>
+                    </div>
+                    <div class="metadata" id="metadata"></div>
+                </section>
+
+                <section class="tips-section">
+                    <h2>💡 Prompt Engineering Tips</h2>
+                    <div class="tips-grid">
+                        <div class="tip-card">
+                            <h4>Be Specific</h4>
+                            <p>Specify exact technologies, versions, and context for better results</p>
+                        </div>
+                        <div class="tip-card">
+                            <h4>Set the Scope</h4>
+                            <p>Clearly define what's in and out of scope for the task</p>
+                        </div>
+                        <div class="tip-card">
+                            <h4>Request Format</h4>
+                            <p>Specify how you want the output structured (list, table, code, etc.)</p>
+                        </div>
+                        <div class="tip-card">
+                            <h4>Iterate & Refine</h4>
+                            <p>Start broad, then narrow down with follow-up prompts</p>
+                        </div>
+                        <div class="tip-card">
+                            <h4>Use Templates</h4>
+                            <p>Create reusable templates for common scenarios</p>
+                        </div>
+                        <div class="tip-card">
+                            <h4>Add Context</h4>
+                            <p>Include relevant background info about the target environment</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="custom-section">
+                    <h2>🛠️ Custom Prompt Builder</h2>
+                    <div class="custom-builder">
+                        <div class="builder-field">
+                            <label>Role:</label>
+                            <input type="text" id="customRole" placeholder="e.g., penetration tester, security analyst">
+                        </div>
+                        <div class="builder-field">
+                            <label>Task:</label>
+                            <input type="text" id="customTask" placeholder="e.g., analyze web application for XSS vulnerabilities">
+                        </div>
+                        <div class="builder-field">
+                            <label>Context:</label>
+                            <textarea id="customContext" placeholder="e.g., Target is a React application with REST API backend"></textarea>
+                        </div>
+                        <div class="builder-field">
+                            <label>Output Format:</label>
+                            <input type="text" id="customFormat" placeholder="e.g., step-by-step guide, vulnerability report">
+                        </div>
+                        <button id="buildCustomBtn" class="generate-btn">Build Custom Prompt</button>
+                    </div>
+                </section>
+
+                <section class="encoder-section">
+                    <h2>🔐 Text Encoder/Obfuscator</h2>
+                    <div class="encoder-tool">
+                        <div class="builder-field">
+                            <label>Input Text:</label>
+                            <textarea id="encoderInput" placeholder="Enter your query to encode/obfuscate"></textarea>
+                        </div>
+                        <div class="encoder-buttons">
+                            <button class="encode-btn" data-encode="base64">Base64</button>
+                            <button class="encode-btn" data-encode="rot13">ROT13</button>
+                            <button class="encode-btn" data-encode="leet">Leetspeak</button>
+                            <button class="encode-btn" data-encode="reverse">Reverse</button>
+                            <button class="encode-btn" data-encode="hex">Hex</button>
+                        </div>
+                        <div class="builder-field">
+                            <label>Encoded Output:</label>
+                            <textarea id="encoderOutput" readonly></textarea>
+                        </div>
+                        <button id="copyEncodedBtn" class="copy-btn">Copy Encoded Text</button>
+                    </div>
+                </section>
+
+                <section class="work-tracking-section">
+                    <h2>📝 Work Tracking</h2>
+                    <div class="work-tracker">
+                        <div class="tracker-controls">
+                            <input type="text" id="workTitle" placeholder="Project/Target name">
+                            <button id="addWorkBtn" class="generate-btn">Add Entry</button>
+                        </div>
+                        <div class="builder-field">
+                            <label>Notes:</label>
+                            <textarea id="workNotes" placeholder="Document your findings, commands, and observations..."></textarea>
+                        </div>
+                        <div class="tracker-actions">
+                            <button id="saveWorkBtn" class="generate-btn">Save to LocalStorage</button>
+                            <button id="exportWorkBtn" class="copy-btn">Export as Markdown</button>
+                            <button id="clearWorkBtn" class="clear-btn">Clear All</button>
+                        </div>
+                        <div id="workHistory" class="work-history"></div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script src="bypass-prompts.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
