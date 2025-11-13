@@ -2,6 +2,29 @@
 
 A comprehensive tool for generating AI prompts tailored for penetration testing, CTF challenges, and security research. Includes AI bypass techniques, text obfuscation, and work tracking features.
 
+---
+
+## 🎯 NEW USER? START HERE!
+
+### **How to Access the Tool:**
+1. **Find the file `index.html` in this folder**
+2. **Double-click it** (it opens in your web browser)
+3. **That's it!** The tool is now running
+
+### **How to Use It:**
+1. Click any **purple button** on the left (like "Web Security")
+2. A prompt appears in the black box on the right
+3. Click **"Copy to Clipboard"**
+4. Paste into ChatGPT or Claude
+5. Replace [brackets] with your actual info
+6. Get security testing guidance!
+
+### **Full Beginner Guide:**
+- 👉 **Open `START-HERE.md`** for super simple instructions
+- 👉 **Open `TUTORIAL.html`** in browser for detailed walkthrough
+
+---
+
 ## ⚠️ Disclaimer
 
 **FOR AUTHORIZED SECURITY TESTING, CTF COMPETITIONS, AND EDUCATIONAL PURPOSES ONLY**
