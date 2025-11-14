@@ -32,7 +32,12 @@ apt install -y \
     network-manager \
     python3 \
     python3-pip \
-    macchanger
+    macchanger \
+    hostapd \
+    dnsmasq \
+    iptables \
+    scrot \
+    iw
 
 echo ""
 echo "[+] Installing Python dependencies..."
