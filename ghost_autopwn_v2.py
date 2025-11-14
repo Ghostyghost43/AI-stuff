@@ -306,7 +306,7 @@ class GhostWiFi:
 
         # Check if already in monitor
         result = self.run(['iwconfig', self.interface], show=False)
-        if result and 'Mode:Monitor' in result.stdout:
+        if result and result.stdout and 'Mode:Monitor' in result.stdout:
             self.log("Already in monitor mode", "SUCCESS")
             self.monitor_interface = self.interface
             return True
@@ -335,7 +335,7 @@ class GhostWiFi:
 
         for name in possible:
             check = self.run(['iwconfig', name], show=False)
-            if check and check.returncode == 0 and 'Mode:Monitor' in check.stdout:
+            if check and check.returncode == 0 and check.stdout and 'Mode:Monitor' in check.stdout:
                 self.monitor_interface = name
                 self.log(f"Monitor mode enabled: {self.monitor_interface}", "SUCCESS")
                 return True
@@ -344,7 +344,7 @@ class GhostWiFi:
         all_ifaces = self.get_interfaces()
         for iface in all_ifaces:
             check = self.run(['iwconfig', iface], show=False)
-            if check and 'Mode:Monitor' in check.stdout:
+            if check and check.stdout and 'Mode:Monitor' in check.stdout:
                 self.monitor_interface = iface
                 self.log(f"Monitor mode enabled: {self.monitor_interface}", "SUCCESS")
                 return True
