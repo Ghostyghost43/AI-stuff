@@ -1402,7 +1402,7 @@ Educational Use Only:
     suite = WiFiAttackSuite(verbose=args.verbose)
 
     # Always run interactive mode
-    suite.interactive_mode()
+    suite.interactive_menu()
 
 
 if __name__ == '__main__':
