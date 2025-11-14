@@ -1,0 +1,117 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║     🔒 GUI AUTOMATION PENTEST PLATFORM                        ║
+║     Installation & Run Commands                               ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+
+📥 STEP 1: DOWNLOAD FROM GITHUB
+═══════════════════════════════════════════════════════════════
+
+Copy and paste these commands into your Linux terminal:
+
+git clone https://github.com/Ghostyghost43/AI-stuff.git
+cd AI-stuff
+git checkout claude/gui-automation-pentest-platform-01CdXk8kDv6o5dyj5Sa2tqLX
+
+
+🔧 STEP 2: INSTALL EVERYTHING
+═══════════════════════════════════════════════════════════════
+
+Make the script executable and run it:
+
+chmod +x install-pentest-platform.sh
+sudo ./install-pentest-platform.sh
+
+⏱️  This takes 5-15 minutes. It installs:
+   • Python GUI framework (PyQt5)
+   • Network tools (nmap, masscan)
+   • Wireless tools (aircrack-ng, reaver)
+   • Hash crackers (hashcat, john)
+   • 50+ other hacking tools
+
+
+🚀 STEP 3: RUN THE GUI
+═══════════════════════════════════════════════════════════════
+
+Launch the graphical interface:
+
+sudo ./run-pentest-platform.sh
+
+OR directly:
+
+sudo python3 pentest_platform.py
+
+
+✅ ONE-LINE INSTALL (Everything at once):
+═══════════════════════════════════════════════════════════════
+
+git clone https://github.com/Ghostyghost43/AI-stuff.git && cd AI-stuff && git checkout claude/gui-automation-pentest-platform-01CdXk8kDv6o5dyj5Sa2tqLX && chmod +x install-pentest-platform.sh && sudo ./install-pentest-platform.sh
+
+
+═══════════════════════════════════════════════════════════════
+WHAT YOU GET:
+═══════════════════════════════════════════════════════════════
+
+✓ Beautiful dark-themed GUI (not command line!)
+✓ Point-and-click hacking tools
+✓ Real-time graphs and visualization
+✓ Network scanning with nmap
+✓ WiFi hacking (capture WPA handshakes)
+✓ MITM attacks (steal passwords from network)
+✓ Password cracking (hashcat & john)
+✓ Full automation (push button pentesting)
+✓ 250+ attack features
+
+
+═══════════════════════════════════════════════════════════════
+AFTER INSTALLATION:
+═══════════════════════════════════════════════════════════════
+
+Every time you want to use it, just run:
+
+cd AI-stuff
+sudo ./run-pentest-platform.sh
+
+A window will open with the GUI interface!
+
+
+═══════════════════════════════════════════════════════════════
+SYSTEM REQUIREMENTS:
+═══════════════════════════════════════════════════════════════
+
+✓ Linux (Kali Linux, Ubuntu, Debian)
+✓ Sudo/root access
+✓ Internet connection (for installation)
+✓ 10GB free disk space
+✓ Wireless adapter (for WiFi hacking)
+
+
+═══════════════════════════════════════════════════════════════
+GITHUB LINKS:
+═══════════════════════════════════════════════════════════════
+
+Repository: https://github.com/Ghostyghost43/AI-stuff
+Branch: claude/gui-automation-pentest-platform-01CdXk8kDv6o5dyj5Sa2tqLX
+
+Download ZIP:
+https://github.com/Ghostyghost43/AI-stuff/archive/refs/heads/claude/gui-automation-pentest-platform-01CdXk8kDv6o5dyj5Sa2tqLX.zip
+
+
+═══════════════════════════════════════════════════════════════
+⚠️  LEGAL WARNING:
+═══════════════════════════════════════════════════════════════
+
+FOR AUTHORIZED TESTING ONLY!
+Only use on networks you own or have written permission to test.
+Unauthorized hacking is ILLEGAL.
+
+
+═══════════════════════════════════════════════════════════════
+Need help? Read the docs:
+═══════════════════════════════════════════════════════════════
+
+DOWNLOAD_AND_INSTALL.md  - Installation guide
+PENTEST_PLATFORM_README.md - Full user manual
+ATTACKS_AND_FEATURES.md - List of all 250+ features
