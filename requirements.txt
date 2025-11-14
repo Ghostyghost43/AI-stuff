@@ -1,0 +1,22 @@
+# GUI Automation Pentest Platform Requirements
+
+# GUI Framework
+PyQt5==5.15.9
+PyQt5-sip==12.12.1
+
+# Network and Packet Manipulation
+scapy==2.5.0
+netifaces==0.11.0
+
+# Visualization
+matplotlib==3.7.1
+networkx==3.1
+
+# Data Processing
+numpy==1.24.3
+
+# System utilities
+psutil==5.9.5
+
+# Additional utilities
+python-dotenv==1.0.0
