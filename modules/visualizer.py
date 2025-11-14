@@ -3,21 +3,38 @@ Real-time Visualization Module
 Provides graphs and network topology visualization
 """
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-import networkx as nx
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel
 from collections import defaultdict
 import time
+
+# Try to import matplotlib and networkx, but make them optional
+try:
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+    from matplotlib.figure import Figure
+    import matplotlib.pyplot as plt
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    MATPLOTLIB_AVAILABLE = False
+    print("[WARNING] Matplotlib not installed - visualization will be limited")
+
+try:
+    import networkx as nx
+    NETWORKX_AVAILABLE = True
+except ImportError:
+    NETWORKX_AVAILABLE = False
+    print("[WARNING] NetworkX not installed - graph features will be limited")
 
 
 class RealtimeVisualizer:
     """Real-time data visualization"""
 
     def __init__(self):
-        self.figure = Figure(figsize=(8, 6), facecolor='#2d2d2d')
-        self.canvas = FigureCanvas(self.figure)
+        if MATPLOTLIB_AVAILABLE:
+            self.figure = Figure(figsize=(8, 6), facecolor='#2d2d2d')
+            self.canvas = FigureCanvas(self.figure)
+        else:
+            self.figure = None
+            self.canvas = None
         self.network_data = {}
         self.traffic_data = defaultdict(list)
         self.attack_timeline = []
@@ -26,7 +43,15 @@ class RealtimeVisualizer:
         """Get the Qt widget for embedding in GUI"""
         widget = QWidget()
         layout = QVBoxLayout()
-        layout.addWidget(self.canvas)
+
+        if MATPLOTLIB_AVAILABLE and self.canvas:
+            layout.addWidget(self.canvas)
+        else:
+            # Fallback if matplotlib not available
+            fallback_label = QLabel("📊 Visualization requires matplotlib\nInstall with: pip install matplotlib networkx")
+            fallback_label.setStyleSheet("color: #95a5a6; padding: 20px;")
+            layout.addWidget(fallback_label)
+
         widget.setLayout(layout)
         return widget
 

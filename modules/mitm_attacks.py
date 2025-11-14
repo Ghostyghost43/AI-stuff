@@ -7,8 +7,16 @@ import subprocess
 import time
 import os
 from typing import Dict, Callable
-from scapy.all import *
 import threading
+import re
+
+# Try to import scapy, but make it optional
+try:
+    from scapy.all import *
+    SCAPY_AVAILABLE = True
+except ImportError:
+    SCAPY_AVAILABLE = False
+    print("[WARNING] Scapy not installed - MITM attacks will be limited")
 
 
 class MITMAttacker:
