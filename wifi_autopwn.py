@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 """
-WiFi Attack Automation Suite - Complete Edition
-================================================
+👻 GHOST AUTOPWN - WiFi Attack Automation Suite 👻
+===================================================
 AUTHORIZED USE ONLY - For penetration testing, security research, and educational purposes.
 Only use on networks you own or have explicit written permission to test.
 
 Features:
-- Automated WiFi scanning with detailed AP and client info
-- Multiple attack vectors: WPA Handshake, PMKID, WPS (Pixie Dust, PIN)
-- Comprehensive vulnerability assessment
-- Client tracking and targeted deauth
-- Automatic hashcat integration
-- Network connection after successful crack
-- Interactive menu system with verbose output
+- 🎯 Evil Twin & Karma Attacks with captive portal
+- 🔥 WPA/WPA2/WPS Multiple attack vectors
+- 🧠 AI-Powered target selection and success probability
+- 📊 Real-time monitoring with live graphs
+- 📸 Automatic screenshot capture
+- 🕵️ IDS/IPS evasion and stealth mode
+- ⚡ Power level control
+- 🌐 Vendor fingerprinting
+- 📡 Channel hopping scanner
+- 🎨 Ghost-themed colorful interface
 """
 
 import os
@@ -27,16 +30,41 @@ from datetime import datetime
 from pathlib import Path
 from collections import defaultdict
 
-# Try to import wordlist generator
+# Try to import advanced modules
 try:
     from wordlist_generator import WordlistGenerator
     WORDLIST_GEN_AVAILABLE = True
 except ImportError:
     WORDLIST_GEN_AVAILABLE = False
 
+try:
+    from advanced_attacks import AdvancedAttacks
+    ADVANCED_ATTACKS_AVAILABLE = True
+except ImportError:
+    ADVANCED_ATTACKS_AVAILABLE = False
+
+try:
+    from intelligence import WiFiIntelligence
+    INTELLIGENCE_AVAILABLE = True
+except ImportError:
+    INTELLIGENCE_AVAILABLE = False
+
+try:
+    from monitoring import WiFiMonitor
+    MONITORING_AVAILABLE = True
+except ImportError:
+    MONITORING_AVAILABLE = False
+
+try:
+    from evasion import EvasionTechniques
+    EVASION_AVAILABLE = True
+except ImportError:
+    EVASION_AVAILABLE = False
+
 
 class Colors:
-    """ANSI color codes for terminal output"""
+    """ANSI color codes with ghost theme"""
+    # Basic colors
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'
@@ -46,6 +74,16 @@ class Colors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
+    # Ghost theme colors
+    GHOST = '\033[38;5;147m'      # Light purple
+    PHANTOM = '\033[38;5;213m'    # Pink/magenta
+    SPOOKY = '\033[38;5;93m'      # Dark purple
+    NEON = '\033[38;5;51m'        # Cyan neon
+    TOXIC = '\033[38;5;46m'       # Bright green
+    BLOOD = '\033[38;5;196m'      # Bright red
+    GOLD = '\033[38;5;220m'       # Gold
+    CYBER = '\033[38;5;81m'       # Electric blue
 
 
 class WiFiAttackSuite:
@@ -60,6 +98,12 @@ class WiFiAttackSuite:
         self.current_process = None
         self.original_interface = None
         self.oui_database = {}
+
+        # Initialize advanced modules
+        self.advanced_attacks = None
+        self.intelligence = None
+        self.monitor = None
+        self.evasion = None
 
         # Register signal handler for cleanup
         signal.signal(signal.SIGINT, self.signal_handler)

