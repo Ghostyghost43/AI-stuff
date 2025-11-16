@@ -115,6 +115,7 @@ sudo bash install-tools.sh
 ```
 
 This will install:
+- **Wireless testing** (aircrack-ng, mdk4, reaver, pixiewps)
 - Network scanners (nmap, masscan, rustscan)
 - Web app tools (sqlmap, nikto, gobuster, ffuf)
 - Exploitation frameworks (metasploit)
@@ -124,6 +125,29 @@ This will install:
 - And many more...
 
 **Note**: The installation script is optimized for Debian/Ubuntu-based systems.
+
+### 📡 Wireless Penetration Testing Guides
+
+**NEW**: Comprehensive guides for wireless security testing:
+
+- 📘 **[MDK4 Complete Guide](MDK4-GUIDE.md)** - Everything about using mdk4 for wireless attacks
+  - Beacon flooding, deauthentication, fake APs
+  - All attack modes explained with examples
+  - Defense and detection strategies
+
+- 📗 **[Aircrack-ng Suite Guide](AIRCRACK-SUITE-GUIDE.md)** - Master the entire aircrack-ng toolkit
+  - airmon-ng, airodump-ng, aircrack-ng, aireplay-ng
+  - WEP and WPA/WPA2 cracking workflows
+  - Evil twin attacks, packet injection
+  - Complete tool reference
+
+- 📙 **[Wireless Pentesting Examples](WIRELESS-PENTESTING-EXAMPLES.md)** - Real-world scenarios
+  - Lab setup and safe testing environments
+  - Complete attack workflows start to finish
+  - Enterprise wireless testing (802.1X)
+  - Professional reporting templates
+
+**⚠️ Important**: These guides are for authorized security testing only. Always obtain written permission before testing any network you don't own.
 
 ## 📖 Usage Guide
 
