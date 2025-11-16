@@ -199,11 +199,17 @@ Prompt: "I have a Base64-encoded question for security research: [paste encoded 
 ```
 AI-stuff/
 ├── index.html              # Main application
+├── standalone.html         # Standalone packaged version
 ├── styles.css              # All styling
 ├── app.js                  # Core functionality
 ├── bypass-prompts.js       # AI bypass techniques database
 ├── install-tools.sh        # Linux tool installer
-└── README.md              # This file
+├── open-tool.sh           # Tool launcher script
+├── README.md              # This file
+├── START-HERE.md          # Beginner guide
+├── MITM-TOOLS-GUIDE.md    # MITM tools comprehensive guide
+├── TUTORIAL.html          # Interactive tutorial
+└── QUICK-VISUAL-GUIDE.txt # Visual interface guide
 ```
 
 ## 🔧 Technical Details
@@ -237,6 +243,15 @@ If you're building AI applications:
 - Implement rate limiting and abuse detection
 
 ## 📚 Educational Resources
+
+### Additional Guides in This Repository
+
+- **[MITM Tools Guide](MITM-TOOLS-GUIDE.md)** 🔍 - Comprehensive guide to Man-In-The-Middle tools for modern systems
+  - Setup instructions for mitmproxy, Burp Suite, Wireshark, and more
+  - Mobile app testing (iOS/Android)
+  - Certificate pinning bypass techniques
+  - Modern security bypasses (HTTP/2, WebSockets, gRPC)
+  - Best practices and troubleshooting
 
 ### Learn More About:
 
