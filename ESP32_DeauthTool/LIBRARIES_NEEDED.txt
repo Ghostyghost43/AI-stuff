@@ -1,0 +1,56 @@
+ESP32 DeAuth Tool - Required Libraries
+=====================================
+
+This sketch uses ONLY BUILT-IN ESP32 libraries!
+No external library installation is required.
+
+BUILT-IN LIBRARIES USED:
+-----------------------
+1. WiFi.h              - ESP32 WiFi functionality (BUILT-IN)
+2. WebServer.h         - Web server for control interface (BUILT-IN)
+3. DNSServer.h         - DNS server for captive portal (BUILT-IN)
+4. esp_wifi.h          - Low-level WiFi functions for deauth (BUILT-IN)
+5. SPIFFS.h            - File system (optional, BUILT-IN)
+6. Preferences.h       - Non-volatile storage (BUILT-IN)
+
+PREREQUISITES:
+-------------
+1. Arduino IDE 1.8.x or 2.x
+2. ESP32 Board Support Package installed
+
+HOW TO INSTALL ESP32 BOARD SUPPORT:
+-----------------------------------
+
+METHOD 1: Arduino IDE
+1. Open Arduino IDE
+2. Go to File > Preferences
+3. In "Additional Board Manager URLs" add:
+   https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+4. Go to Tools > Board > Boards Manager
+5. Search for "ESP32"
+6. Install "ESP32 by Espressif Systems" (version 2.0.0 or higher recommended)
+
+METHOD 2: PlatformIO
+1. Install PlatformIO IDE or VS Code + PlatformIO extension
+2. Open the project folder (containing platformio.ini)
+3. PlatformIO will automatically download all dependencies
+
+SUPPORTED ESP32 BOARDS:
+----------------------
+- ESP32 DevKit V1
+- ESP32-WROOM-32
+- ESP32-WROVER
+- NodeMCU-32S
+- ESP32-S2
+- ESP32-S3
+- ESP32-C3
+- And most other ESP32 variants
+
+MEMORY REQUIREMENTS:
+-------------------
+- Flash: ~300KB (sketch size)
+- RAM: ~50KB
+- Recommended: ESP32 with at least 4MB flash
+
+NO ADDITIONAL LIBRARIES TO INSTALL!
+The sketch is ready to upload after ESP32 board support is installed.
